@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Test"
+echo "Test 2"
 
 echo "$1"
 
