@@ -1,0 +1,11 @@
+name: tethys-app-linter
+
+on: [push]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    name: A job to say hello
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/tethys-app-linter@v1
