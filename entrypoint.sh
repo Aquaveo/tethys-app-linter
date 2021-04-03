@@ -1,5 +1,7 @@
 #!/bin/bash
 
-echo $1
+echo "Test"
+
+echo "$1"
 
 pip list
