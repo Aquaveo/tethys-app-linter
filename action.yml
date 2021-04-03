@@ -1,0 +1,15 @@
+# action.yml
+name: 'GA Tethysapp Linter'
+description: 'A GitHub Action to check the code integrity of  Tethys applications.'
+inputs:
+  repository:
+    description: 'The Tethys app repository to lint.'
+    required: true
+    default: ${{ github.repository }}
+  ref:
+    description: 'The branch to use. Defaults to the branch that triggered this event.'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - ${{ inputs.app }}
