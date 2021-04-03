@@ -1,6 +1,6 @@
 # action.yml
-name: 'GA Tethysapp Linter'
-description: 'A GitHub Action to check the code integrity of  Tethys applications.'
+name: 'tethys-app-linter'
+description: 'A GitHub Action to check the code integrity of Tethys applications.'
 inputs:
   repository:
     description: 'The Tethys app repository to lint.'
@@ -12,4 +12,4 @@ runs:
   using: 'docker'
   image: 'Dockerfile'
   args:
-    - ${{ inputs.app }}
+    - ${{ inputs.repository }}
