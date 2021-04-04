@@ -1,7 +1,3 @@
 #!/bin/bash
 
-echo "Test 6"
-
-echo "$1"
-
-pip list
+python ./tethys_app_linter.py $1
