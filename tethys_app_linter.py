@@ -20,8 +20,8 @@ else:
 if os.path.isfile(f'/{repo_name}/install.yml'):
     install_file = f'/{repo_name}/install.yml'
     print("install.yml file exists.")
-elif f'{repo_name}/install.yaml':
-    install_file = os.path.isfile(f'/{repo_name}/install.yaml')
+elif os.path.isfile(f'/{repo_name}/install.yaml'):
+    install_file = f'/{repo_name}/install.yaml'
     print("install.yaml file exists.")
 else:
     print("install.yml not found.")
