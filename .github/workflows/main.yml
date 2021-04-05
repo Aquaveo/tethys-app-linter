@@ -10,4 +10,4 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Run tethys-app-linter
-      uses: actions/tethys-app-linter@v1
+      uses: Aquaveo/tethys-app-linter@v1
