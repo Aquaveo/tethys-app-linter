@@ -1,3 +1,3 @@
 #!/bin/bash
 
-python ./tethys_app_linter.py $1
+/opt/conda/envs/tethys/bin/python ./tethys_app_linter.py $1
