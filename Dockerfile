@@ -10,4 +10,4 @@ COPY tethysapp-test_app /tethysapp-test_app
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x entrypoint.sh
 
-ENTRYPOINT ["sh", "./entrypoint.sh"]
+ENTRYPOINT ["sh", "/entrypoint.sh"]
