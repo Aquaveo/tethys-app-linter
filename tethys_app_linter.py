@@ -12,14 +12,17 @@ python_version = sys.version[:3]
 install_file = ''
 app_python_package = ''
 repo_owner, repo_name = sys.argv[1].split('/')
+workspace = sys.argv[2]
 
 # use test_app if running on self
 if repo_name == 'tethys-app-linter':
+    workspace = '/'
     repo_name = 'tethysapp-test_app'
 
+repo_path = os.path.join(workspace, repo_name)
 # check setup.py exists
 print('Verifying that setup.py exists.')
-if os.path.isfile(f'/{repo_name}/setup.py'):
+if os.path.isfile(os.path.join(repo_path, 'setup.py')):
     print("setup.py file exists.")
 else:
     errors = True
@@ -27,11 +30,11 @@ else:
 
 # check install.yml exists
 print('Verifying that install.yml exists.')
-if os.path.isfile(f'/{repo_name}/install.yml'):
-    install_file = f'/{repo_name}/install.yml'
+if os.path.isfile(os.path.join(repo_path, 'install.yml')):
+    install_file = os.path.join(repo_path, 'install.yml')
     print("install.yml file exists.")
-elif os.path.isfile(f'/{repo_name}/install.yaml'):
-    install_file = f'/{repo_name}/install.yaml'
+elif os.path.isfile(os.path.join(repo_path, 'install.yaml')):
+    install_file = os.path.join(repo_path, 'install.yaml')
     print("install.yaml file exists.")
 else:
     errors = True
@@ -52,9 +55,13 @@ if install_file:
     ]
 
     requirements = []
-    p1 = subprocess.Popen(f'/opt/conda/envs/tethys/bin/pipreqs {repo_name} --print', stdout=subprocess.PIPE, shell=True)
+    p1 = subprocess.Popen(
+        f'/opt/conda/envs/tethys/bin/pipreqs {repo_path} --print',
+        stdout=subprocess.PIPE,
+        shell=True
+    )
     for req in p1.communicate()[0].splitlines():
-        package, version = req.decode("utf-8").split('==')
+        package, version = req.decode('utf-8').split('==')
         if package.lower() not in tethys_platform_dependencies:
             requirements.append(package.lower())
 
@@ -78,44 +85,45 @@ if install_file:
 
 # check that the app python package is the only directory in the app package directory
 print('Verifying that the app python package is the only directory in the app package directory.')
-if len(os.listdir(f'/{repo_name}/tethysapp')) > 1:
+if len(os.listdir(os.path.join(repo_path, 'tethysapp'))) > 1:
     print('The app package contains directories other than the app python package')
 else:
-    app_python_package = os.listdir(f'/{repo_name}/tethysapp')[0]
+    app_python_package = os.listdir(os.path.join(repo_path, 'tethysapp'))[0]
 
 # check that there's not an __init__.py file at the release and app package directories
 print('Verifying that the release package directory is not a python package.')
-if os.path.isfile(f'/{repo_name}/__init__.py'):
+if os.path.isfile(os.path.join(repo_path, '__init__.py')):
     errors = True
-    print('Found an "__init__.py" file in the release package directory. Please remove it.')
-elif os.path.isfile(f'/{repo_name}/tethysapp/__init__.py'):
+    print('Found "__init__.py" in the release package directory. Please remove it.')
+elif os.path.isfile(os.path.join(repo_path, 'tethysapp', '__init__.py')):
     errors = True
-    print('Found an "__init__.py" file in the app package directory. Please remove it.')
+    print('Found "__init__.py" in the app package directory. Please remove it.')
 
 # check that __init__.py in app python package is empty
 if app_python_package:
     print('Verifying that the __init__.py file in the app python package is empty.')
-    if os.path.isfile(f'/{repo_name}/tethysapp/{app_python_package}/__init__.py'):
-        with open(f'/{repo_name}/tethysapp/{app_python_package}/__init__.py', 'r') as f:
+    if os.path.isfile(os.path.join(repo_path, 'tethysapp', app_python_package, '__init__.py')):
+        with open(os.path.join(repo_path, 'tethysapp', app_python_package, '__init__.py'), 'r') as f:
             if f.read():
-                print('The app python package "__init__.py" file should  be empty.')
+                print('The app python package "__init__.py" file should be empty.')
 
 # install the app
 if app_python_package and not errors:
     print('Testing app installation.')
     p2 = subprocess.Popen(
-        [f'cd /{repo_name} ; . /opt/conda/bin/activate tethys && python setup.py install'],
+        [f'cd {repo_path} ; . /opt/conda/bin/activate tethys && python setup.py install'],
         stdout=subprocess.PIPE,
         shell=True
     )
-    print(p2.communicate()[0])
+    for l in p2.communicate()[0].decode('utf-8').splitlines():
+        print(l)
 
 # check that needed non-python files were properly added to the resource_files variable of setup.py
 if app_python_package and not errors:
     print('Verifying that needed non-python files were properly added to the "resource_files" variable of setup.py')
     non_python_files_repo = []
     non_python_files_installation = []
-    repo_python_package = f'/{repo_name}/tethysapp/{app_python_package}'
+    repo_python_package = os.path.join(repo_path, 'tethysapp', app_python_package)
     installed_python_package = glob(
         f'/opt/conda/envs/tethys/lib/python{python_version}/site-packages/{repo_name.replace("-", "_")}*'
     )[0]
