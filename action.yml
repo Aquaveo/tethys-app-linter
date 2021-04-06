@@ -6,13 +6,8 @@ inputs:
     description: 'The Tethys app repository to lint.'
     required: true
     default: ${{ github.repository }}
-  ref:
-    description: 'The branch to use. Defaults to the branch that triggered this event.'
-    required: true
-    default: ${{ github.ref }}
 runs:
   using: 'docker'
   image: 'Dockerfile'
   args:
     - ${{ inputs.repository }}
-    - ${{ inputs.ref }}
