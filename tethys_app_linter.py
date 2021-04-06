@@ -1,4 +1,4 @@
-#!/usr/local/bin/python
+#!/opt/conda/envs/tethys/bin/python
 
 import sys
 import os
@@ -9,12 +9,16 @@ import yaml
 # variables
 errors = False
 python_version = sys.version[:3]
-repo_owner, repo_name = sys.argv[1].split('/')
 install_file = ''
 app_python_package = ''
+repo_owner, repo_name = sys.argv[1].split('/')
+
+# use test_app if running on self
+if repo_name == 'tethys-app-linter':
+    repo_name = 'tethysapp-test_app'
 
 # check setup.py exists
-print('Checking that setup.py exists.')
+print('Verifying that setup.py exists.')
 if os.path.isfile(f'/{repo_name}/setup.py'):
     print("setup.py file exists.")
 else:
@@ -22,7 +26,7 @@ else:
     print('setup.py not found.')
 
 # check install.yml exists
-print('Checking that install.yml exists.')
+print('Verifying that install.yml exists.')
 if os.path.isfile(f'/{repo_name}/install.yml'):
     install_file = f'/{repo_name}/install.yml'
     print("install.yml file exists.")
@@ -34,16 +38,25 @@ else:
     print("install.yml not found.")
 
 # check that all dependencies are included in "install.yml"
-print('Checking that all dependencies have been listed.')
+print('Verifying that all dependencies have been listed.')
 if install_file:
-    already_installed_requirements = []
-    p0 = subprocess.Popen('. /opt/conda/bin/activate tethys && conda list', stdout=subprocess.PIPE, shell=True)
+    tethys_platform_dependencies = [
+        'tethys_platform', 'tethys_platform.egg', 'pycrypto', 'pyopenssl', 'docker-py', 'distro', 'psycopg2',
+        'postgresql', 'sqlalchemy', 'geoalchemy2', 'plotly', 'bokeh', 'hs_restclient', 'tethys_dataset_services',
+        'owslib', 'requests', 'dask', 'tethys_dask_scheduler', 'channels', 'daphne', 'service_identity', 'condorpy',
+        'siphon', 'python-jose', 'pyjwt', 'arrow', 'isodate', 'django', 'django-axes', 'django-filter',
+        'djangorestframework', 'django-bootstrap3', 'django-model-utils', 'django-guardian', 'django-gravatar2',
+        'django-termsandconditions', 'django-session-security', 'django-analytical', 'django-simple-captcha',
+        'django-recaptcha2', 'django-mfa2', 'social-auth-app-django', 'requests-mock', 'selenium', 'coverage',
+        'factory_boy', 'pillow', 'pip', 'future', 'flake8', 'pbr', 'git'
+    ]
+
     requirements = []
     p1 = subprocess.Popen(f'/opt/conda/envs/tethys/bin/pipreqs {repo_name} --print', stdout=subprocess.PIPE, shell=True)
     for req in p1.communicate()[0].splitlines():
         package, version = req.decode("utf-8").split('==')
-        if package != 'tethys_platform' and package != 'tethys_platform.egg':
-            requirements.append(package)
+        if package.lower() not in tethys_platform_dependencies:
+            requirements.append(package.lower())
 
     listed_requirements = []
     with open(install_file, 'r') as f:
@@ -56,7 +69,7 @@ if install_file:
     requirements = set(sorted(requirements))
     listed_requirements = set(sorted(listed_requirements))
 
-    if listed_requirements.issubset(requirements):
+    if not requirements or listed_requirements.issubset(requirements):
         print('All requirements are listed.')
     else:
         errors = True
@@ -64,7 +77,7 @@ if install_file:
         print(f'Missing requirements: {requirement_diff}')
 
 # check that the app python package is the only directory in the app package directory
-print('Checking that the app python package is the only directory in the app package directory.')
+print('Verifying that the app python package is the only directory in the app package directory.')
 if len(os.listdir(f'/{repo_name}/tethysapp')) > 1:
     print('The app package contains directories other than the app python package')
 else:
@@ -88,26 +101,28 @@ if app_python_package:
                 print('The app python package "__init__.py" file should  be empty.')
 
 # install the app
-if app_python_package:
+if app_python_package and not errors:
     print('Testing app installation.')
-    if not errors:
-        p2 = subprocess.Popen(
-            [f'cd /{repo_name} && /opt/conda/envs/tethys/bin/tethys install'],
-            stdout=subprocess.PIPE,
-            shell=True
-        )
-        print(p2.communicate()[0])
+    p2 = subprocess.Popen(
+        [f'cd /{repo_name} ; . /opt/conda/bin/activate tethys && python setup.py install'],
+        stdout=subprocess.PIPE,
+        shell=True
+    )
+    print(p2.communicate()[0])
 
 # check that needed non-python files were properly added to the resource_files variable of setup.py
-if app_python_package:
+if app_python_package and not errors:
+    print('Verifying that needed non-python files were properly added to the "resource_files" variable of setup.py')
     non_python_files_repo = []
     non_python_files_installation = []
     repo_python_package = f'/{repo_name}/tethysapp/{app_python_package}'
-    installed_python_package = glob(f'/opt/conda/envs/tethys/lib/python{python_version}/site-packages/{repo_name}*')[0]
+    installed_python_package = glob(
+        f'/opt/conda/envs/tethys/lib/python{python_version}/site-packages/{repo_name.replace("-", "_")}*'
+    )[0]
 
     for root, subdirs, files in os.walk(repo_python_package):
         for file in files:
-            if not file.endswith('.py'):
+            if not file.startswith('.') and not file.endswith('.py'):
                 non_python_files_repo.append(file)
 
     for root, subdirs, files in os.walk(installed_python_package):
