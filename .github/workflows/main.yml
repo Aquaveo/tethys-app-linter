@@ -1,6 +1,6 @@
 name: tethys-app-linter
 
-on: [push]
+on: [release]
 
 jobs:
   lint:
