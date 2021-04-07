@@ -39,6 +39,14 @@ else:
     errors = True
     print("install.yml not found.")
 
+if install_file:
+    print("Validating install.yml.")
+    try:
+        with open(install_file, 'r') as f:
+            yaml.safe_load(f)
+    except Exception as e:
+        print(e)
+
 # check that all dependencies are included in "install.yml"
 print('Verifying that all dependencies have been listed.')
 if install_file:
