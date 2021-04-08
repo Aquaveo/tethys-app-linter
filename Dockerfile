@@ -6,7 +6,6 @@ RUN /opt/conda/envs/tethys/bin/python -m pip install pipreqs pyyaml
 
 COPY tethys_app_linter.py /tethys_app_linter.py
 COPY tethysapp-test_app /tethysapp-test_app
-COPY tox.ini /github/workspace/tox.ini
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x entrypoint.sh
