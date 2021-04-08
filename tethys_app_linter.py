@@ -50,20 +50,29 @@ if install_file:
 # check that all dependencies are included in "install.yml"
 print('Verifying that all dependencies have been listed.')
 if install_file:
-    tethys_platform_dependencies = [
-        'tethys_platform', 'tethys_platform.egg', 'pycrypto', 'pyopenssl', 'docker-py', 'distro', 'psycopg2',
-        'postgresql', 'sqlalchemy', 'geoalchemy2', 'plotly', 'bokeh', 'hs_restclient', 'tethys_dataset_services',
-        'owslib', 'requests', 'dask', 'tethys_dask_scheduler', 'channels', 'daphne', 'service_identity', 'condorpy',
-        'siphon', 'python-jose', 'pyjwt', 'arrow', 'isodate', 'django', 'django-axes', 'django-filter',
-        'djangorestframework', 'django-bootstrap3', 'django-model-utils', 'django-guardian', 'django-gravatar2',
-        'django-termsandconditions', 'django-session-security', 'django-analytical', 'django-simple-captcha',
-        'django-recaptcha2', 'django-mfa2', 'social-auth-app-django', 'requests-mock', 'selenium', 'coverage',
-        'factory_boy', 'pillow', 'pip', 'future', 'flake8', 'pbr', 'git'
-    ]
+    pipreqs_exec = '/opt/conda/envs/tethys/bin/pipreqs'
+    # generate tethys_platform dependencies
+    tethys_platform_dependencies = []
+    tethys_platform_installation_path = glob(
+        f'/opt/conda/envs/tethys/lib/python{python_version}/site-packages/tethys_platform*'
+    )[0]
+    with open(os.path.join(tethys_platform_installation_path, 'top_level.txt'), 'r') as f:
+        tethys_libraries = f.read().splitlines()
+
+    for lib in tethys_libraries:
+        p0 = subprocess.Popen(
+            f'{pipreqs_exec} /opt/conda/envs/tethys/lib/python{python_version}/site-packages/{lib} --print',
+            stdout=subprocess.PIPE,
+            shell=True
+        )
+        for req in p0.communicate()[0].splitlines():
+            package, version = req.decode('utf-8').split('==')
+            if package.lower() not in tethys_platform_dependencies:
+                tethys_platform_dependencies.append(package.lower())
 
     requirements = []
     p1 = subprocess.Popen(
-        f'/opt/conda/envs/tethys/bin/pipreqs {workspace} --print',
+        f'{pipreqs_exec} {workspace} --print',
         stdout=subprocess.PIPE,
         shell=True
     )
@@ -80,8 +89,8 @@ if install_file:
     if install_file_contents and install_file_contents['pip']:
         listed_requirements.extend(install_file_contents['pip'])
 
-    requirements = set(sorted(requirements))
-    listed_requirements = set(sorted(listed_requirements))
+    requirements = set(requirements)
+    listed_requirements = set(listed_requirements)
 
     if not requirements or listed_requirements.issubset(requirements):
         print('All requirements are listed.')
