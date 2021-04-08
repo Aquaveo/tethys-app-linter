@@ -6,6 +6,19 @@ from glob import glob
 import subprocess
 import yaml
 
+
+# print colors
+def c_print(msg, style):
+    return print(f'{style}{msg}{end_style}')
+
+
+# colors
+end_style = '\033[0m'
+red_style = '\033[0;31m'
+green_style = '\033[0;32m'
+orange_style = '\033[0;33m'
+blue_style = '\033[0;34m'
+
 # variables
 errors = False
 python_version = sys.version[:3]
@@ -20,35 +33,35 @@ if repo_name == 'tethys-app-linter':
     workspace = os.path.join('/', repo_name)
 
 # check setup.py exists
-print('Verifying that setup.py exists.')
+c_print('Verifying that setup.py exists', blue_style)
 if os.path.isfile(os.path.join(workspace, 'setup.py')):
-    print("setup.py file exists.")
+    c_print(f'setup.py file exists.', green_style)
 else:
     errors = True
-    print('setup.py not found.')
+    c_print('setup.py not found.', red_style)
 
 # check install.yml exists
-print('Verifying that install.yml exists.')
+c_print('Verifying that install.yml exists.', blue_style)
 if os.path.isfile(os.path.join(workspace, 'install.yml')):
     install_file = os.path.join(workspace, 'install.yml')
-    print("install.yml file exists.")
+    c_print('install.yml file exists.', green_style)
 elif os.path.isfile(os.path.join(workspace, 'install.yaml')):
     install_file = os.path.join(workspace, 'install.yaml')
-    print("install.yaml file exists.")
+    c_print('install.yaml file exists.', green_style)
 else:
     errors = True
-    print("install.yml not found.")
+    c_print('install.yml not found.', red_style)
 
 if install_file:
-    print("Validating install.yml.")
+    c_print('Validating install.yml.', blue_style)
     try:
         with open(install_file, 'r') as f:
             yaml.safe_load(f)
     except Exception as e:
-        print(e)
+        c_print(e, red_style)
 
 # check that all dependencies are included in "install.yml"
-print('Verifying that all dependencies have been listed.')
+c_print('Verifying that all dependencies have been listed.', blue_style)
 if install_file:
     pipreqs_exec = '/opt/conda/envs/tethys/bin/pipreqs'
     # generate tethys_platform dependencies
@@ -93,39 +106,39 @@ if install_file:
     listed_requirements = set(listed_requirements)
 
     if not requirements or listed_requirements.issubset(requirements):
-        print('All requirements are listed.')
+        c_print('All requirements are listed.', green_style)
     else:
         errors = True
         requirement_diff = list(requirements.difference(listed_requirements))
-        print(f'Missing requirements: {requirement_diff}')
+        c_print(f'Missing requirements: {requirement_diff}', red_style)
 
 # check that the app python package is the only directory in the app package directory
-print('Verifying that the app python package is the only directory in the app package directory.')
+c_print('Verifying that the app python package is the only directory in the app package directory.', blue_style)
 if len(os.listdir(os.path.join(workspace, 'tethysapp'))) > 1:
-    print('The app package contains directories other than the app python package')
+    c_print('The app package contains directories other than the app python package', red_style)
 else:
     app_python_package = os.listdir(os.path.join(workspace, 'tethysapp'))[0]
 
 # check that there's not an __init__.py file at the release and app package directories
-print('Verifying that the release package directory is not a python package.')
+c_print('Verifying that the release package directory is not a python package.', blue_style)
 if os.path.isfile(os.path.join(workspace, '__init__.py')):
     errors = True
-    print('Found "__init__.py" in the release package directory. Please remove it.')
+    c_print('Found "__init__.py" in the release package directory. Please remove it.', red_style)
 elif os.path.isfile(os.path.join(workspace, 'tethysapp', '__init__.py')):
     errors = True
-    print('Found "__init__.py" in the app package directory. Please remove it.')
+    c_print('Found "__init__.py" in the app package directory. Please remove it.', red_style)
 
 # check that __init__.py in app python package is empty
 if app_python_package:
-    print('Verifying that the __init__.py file in the app python package is empty.')
+    c_print('Verifying that the __init__.py file in the app python package is empty.', blue_style)
     if os.path.isfile(os.path.join(workspace, 'tethysapp', app_python_package, '__init__.py')):
         with open(os.path.join(workspace, 'tethysapp', app_python_package, '__init__.py'), 'r') as f:
             if f.read():
-                print('The app python package "__init__.py" file should be empty.')
+                c_print('The app python package "__init__.py" file should be empty.', red_style)
 
 # install the app
 if app_python_package and not errors:
-    print('Testing app installation.')
+    c_print('Testing app installation.', blue_style)
     p2 = subprocess.Popen(
         [f'cd {workspace} ; . /opt/conda/bin/activate tethys && python setup.py install'],
         stdout=subprocess.PIPE,
@@ -136,7 +149,10 @@ if app_python_package and not errors:
 
 # check that needed non-python files were properly added to the resource_files variable of setup.py
 if app_python_package and not errors:
-    print('Verifying that needed non-python files were properly added to the "resource_files" variable of setup.py')
+    c_print(
+        'Verifying that needed non-python files were properly added to the "resource_files" variable of setup.py',
+        blue_style
+    )
     non_python_files_repo = []
     non_python_files_installation = []
     repo_python_package = os.path.join(workspace, 'tethysapp', app_python_package)
@@ -156,4 +172,4 @@ if app_python_package and not errors:
 
     for file in non_python_files_repo:
         if file not in non_python_files_installation:
-            print(f'The file "{file}" was not added to the "resource_files" variable in the setup.py.')
+            c_print(f'The file "{file}" was not added to the "resource_files" variable in the setup.py.', orange_style)
