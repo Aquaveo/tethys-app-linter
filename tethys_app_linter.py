@@ -211,8 +211,8 @@ def main() -> bool:
             app_installed = install_app()
             non_python_files_added(app_python_package)
     if app_installed:
-        return True
-    return False
+        return 'success'
+    return 'failed'
 
 if __name__ == "__main__":
     main()

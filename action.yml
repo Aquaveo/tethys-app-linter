@@ -6,6 +6,9 @@ inputs:
     description: 'The Tethys app repository to lint.'
     required: true
     default: ${{ github.repository }}
+outputs:
+  success:
+    description: 'Returns "success" if all checks pass, "failed" if not.'
 runs:
   using: 'docker'
   image: 'Dockerfile'
