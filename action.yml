@@ -7,8 +7,8 @@ inputs:
     required: true
     default: ${{ github.repository }}
 outputs:
-  success:
-    description: 'Returns "success" if all checks pass, "failed" if not.'
+  result:
+    description: 'Returns "Success" if all checks pass, "Failed" if not.'
 runs:
   using: 'docker'
   image: 'Dockerfile'

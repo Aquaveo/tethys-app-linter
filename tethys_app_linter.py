@@ -71,54 +71,58 @@ def install_yml_is_valid(file_path: str) -> bool:
 
 # check that all dependencies are included in "install.yml"
 def check_dependencies(file_path: str, repo_path: str = workspace) -> bool:
-    c_print('Verifying that all dependencies have been listed.', blue_style)
-    # generate tethys_platform dependencies
-    tethys_platform_dependencies = []
-    tethys_platform_installation_path = glob(
-        f'/opt/conda/envs/tethys/lib/python{python_version}/site-packages/tethys_platform*'
-    )[0]
-    with open(os.path.join(tethys_platform_installation_path, 'top_level.txt'), 'r') as submodule_list:
-        tethys_libraries = submodule_list.read().splitlines()
+    if file_path:
+        c_print('Verifying that all dependencies have been listed.', blue_style)
+        # generate tethys_platform dependencies
+        tethys_platform_dependencies = []
+        tethys_platform_installation_path = glob(
+            f'/opt/conda/envs/tethys/lib/python{python_version}/site-packages/tethys_platform*'
+        )[0]
+        with open(os.path.join(tethys_platform_installation_path, 'top_level.txt'), 'r') as submodule_list:
+            tethys_libraries = submodule_list.read().splitlines()
 
-    for lib in tethys_libraries:
-        p0 = subprocess.Popen(
-            f'{pipreqs_exec} /opt/conda/envs/tethys/lib/python{python_version}/site-packages/{lib} --print',
+        for lib in tethys_libraries:
+            p0 = subprocess.Popen(
+                f'{pipreqs_exec} /opt/conda/envs/tethys/lib/python{python_version}/site-packages/{lib} --print',
+                stdout=subprocess.PIPE,
+                shell=True
+            )
+            for req in p0.communicate()[0].splitlines():
+                package, version = req.decode('utf-8').split('==')
+                if package.lower() not in tethys_platform_dependencies:
+                    tethys_platform_dependencies.append(package.lower())
+
+        requirements = []
+        p1 = subprocess.Popen(
+            f'{pipreqs_exec} {repo_path} --print',
             stdout=subprocess.PIPE,
             shell=True
         )
-        for req in p0.communicate()[0].splitlines():
+        for req in p1.communicate()[0].splitlines():
             package, version = req.decode('utf-8').split('==')
             if package.lower() not in tethys_platform_dependencies:
-                tethys_platform_dependencies.append(package.lower())
+                requirements.append(package.lower())
 
-    requirements = []
-    p1 = subprocess.Popen(
-        f'{pipreqs_exec} {repo_path} --print',
-        stdout=subprocess.PIPE,
-        shell=True
-    )
-    for req in p1.communicate()[0].splitlines():
-        package, version = req.decode('utf-8').split('==')
-        if package.lower() not in tethys_platform_dependencies:
-            requirements.append(package.lower())
+        listed_requirements = []
+        with open(file_path, 'r') as yml:
+            install_file_contents = yaml.safe_load(yml).get('requirements', {})
+        if install_file_contents and install_file_contents['conda']['packages']:
+            listed_requirements.extend(install_file_contents['conda']['packages'])
+        if install_file_contents and install_file_contents['pip']:
+            listed_requirements.extend(install_file_contents['pip'])
 
-    listed_requirements = []
-    with open(file_path, 'r') as yml:
-        install_file_contents = yaml.safe_load(yml).get('requirements', {})
-    if install_file_contents and install_file_contents['conda']['packages']:
-        listed_requirements.extend(install_file_contents['conda']['packages'])
-    if install_file_contents and install_file_contents['pip']:
-        listed_requirements.extend(install_file_contents['pip'])
+        requirements = set(requirements)
+        listed_requirements = set(listed_requirements)
 
-    requirements = set(requirements)
-    listed_requirements = set(listed_requirements)
-
-    if not requirements or listed_requirements.issubset(requirements):
-        c_print('All requirements are listed.', green_style)
-        return True
+        if not requirements or listed_requirements.issubset(requirements):
+            c_print('All requirements are listed.', green_style)
+            return True
+        else:
+            requirement_diff = list(requirements.difference(listed_requirements))
+            c_print(f'Missing requirements: {requirement_diff}', red_style)
+            return False
     else:
-        requirement_diff = list(requirements.difference(listed_requirements))
-        c_print(f'Missing requirements: {requirement_diff}', red_style)
+        c_print('Dependencies not checked. Could not find install.yml.', red_style)
         return False
 
 # check that the app python package is the only directory in the app package directory
@@ -131,11 +135,13 @@ def app_python_package_is_only(path: str = workspace) -> str:
 
 # check tethys 3 syntax
 def is_tethys_3(app_python_package: str) -> bool:
-    check1 = app_and_release_package_are_not_python_packages()
-    check2 = init_py_is_empty(app_python_package)
-    if check1 and check2:
-        return True
-    return False
+    ret = False
+    if app_python_package:
+        check1 = app_and_release_package_are_not_python_packages()
+        check2 = init_py_is_empty(app_python_package)
+        if check1 and check2:
+            ret = True
+    return ret
 
 # check that there's not an __init__.py file at the release and app package directories
 def app_and_release_package_are_not_python_packages(path: str = workspace) -> bool:
@@ -156,6 +162,8 @@ def init_py_is_empty(app_python_package: str, path: str = workspace) -> bool:
         with open(os.path.join(path, 'tethysapp', app_python_package, '__init__.py'), 'r') as f:
             if f.read():
                 c_print('The app python package "__init__.py" file should be empty.', red_style)
+                return False
+    return True
 
 # install the app
 def install_app(path: str = workspace) -> bool:
@@ -163,56 +171,66 @@ def install_app(path: str = workspace) -> bool:
     p2 = subprocess.Popen(
         [f'cd {path} ; . /opt/conda/bin/activate tethys && python setup.py install'],
         stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         shell=True
     )
-    lines = p2.communicate()[0].decode('utf-8').splitlines()
+    res = p2.communicate()
+    lines = res[0].decode('utf-8').splitlines()
     for l in lines:
         print(l)
-    if "success" in lines[-1]:
+    if 'error' not in res[1].decode('utf-8').lower():
         return True
     return False
 
 # check that needed non-python files were properly added to the resource_files variable of setup.py
 def non_python_files_added(app_python_package: str) -> None:
-    c_print(
-        'Verifying that needed non-python files were properly added to the "resource_files" variable of setup.py',
-        blue_style
-    )
-    non_python_files_repo = []
-    non_python_files_installation = []
-    repo_python_package = os.path.join(workspace, 'tethysapp', app_python_package)
-    installed_python_package = glob(
-        f'/opt/conda/envs/tethys/lib/python{python_version}/site-packages/{repo_name.replace("-", "_")}*'
-    )[0]
+    if app_python_package:
+        c_print(
+            'Verifying that needed non-python files were properly added to the "resource_files" variable of setup.py',
+            blue_style
+        )
+        non_python_files_repo = []
+        non_python_files_installation = []
+        repo_python_package = os.path.join(workspace, 'tethysapp', app_python_package)
+        installed_python_package = glob(
+            f'/opt/conda/envs/tethys/lib/python{python_version}/site-packages/{repo_name.replace("-", "_")}*'
+        )[0]
 
-    for root, subdirs, files in os.walk(repo_python_package):
-        for file in files:
-            if not file.startswith('.') and not file.endswith('.py'):
-                non_python_files_repo.append(file)
+        for root, subdirs, files in os.walk(repo_python_package):
+            for file in files:
+                if not file.startswith('.') and not file.endswith('.py'):
+                    non_python_files_repo.append(file)
 
-    for root, subdirs, files in os.walk(installed_python_package):
-        for file in files:
-            if not file.endswith('.py'):
-                non_python_files_installation.append(file)
+        for root, subdirs, files in os.walk(installed_python_package):
+            for file in files:
+                if not file.endswith('.py'):
+                    non_python_files_installation.append(file)
 
-    for file in non_python_files_repo:
-        if file not in non_python_files_installation:
-            c_print(f'The file "{file}" was not added to the "resource_files" variable in the setup.py.', orange_style)
+        for file in non_python_files_repo:
+            if file not in non_python_files_installation:
+                c_print(
+                    f'The file "{file}" was not added to the "resource_files" variable in the setup.py.',
+                    orange_style
+                )
 
-def main() -> bool:
+def main() -> str:
+    app_installed = False
     setup_py = setup_py_exists()
     install_yml = install_yml_exists()
-    if install_yml:
-        dependencies = check_dependencies(install_yml)
+    dependencies = check_dependencies(install_yml)
     app_python_package = app_python_package_is_only()
-    if app_python_package:
-        tethys3 = is_tethys_3(app_python_package)
-        if all(check == True for check in [setup_py, install_yml, dependencies, tethys3]):
-            app_installed = install_app()
-            non_python_files_added(app_python_package)
+    tethys3 = is_tethys_3(app_python_package)
+
+    checks = [setup_py, os.path.isfile(install_yml), dependencies, tethys3]
+
+    if all(check == True for check in checks):
+        app_installed = install_app()
+        non_python_files_added(app_python_package)
+
     if app_installed:
-        return 'success'
-    return 'failed'
+        c_print('The app passed all the checks.\nRESULT: Success', green_style)
+    else:
+        c_print('The app did not pass all the checks.\nRESULT: Failed', red_style)
 
 if __name__ == "__main__":
     main()
