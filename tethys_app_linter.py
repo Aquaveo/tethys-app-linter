@@ -25,9 +25,11 @@ if repo_name == 'tethys-app-linter':
     repo_name = 'tethysapp-test_app'
     workspace = os.path.join('/', repo_name)
 
+
 # print colors
 def c_print(msg, style):
     return print(f'{style}{msg}{end_style}')
+
 
 # check setup.py exists
 def setup_py_exists(path: str = workspace) -> bool:
@@ -38,6 +40,7 @@ def setup_py_exists(path: str = workspace) -> bool:
     else:
         c_print('setup.py not found.', red_style)
         return False
+
 
 # check install.yml exists
 def install_yml_exists(path: str = workspace) -> str:
@@ -58,6 +61,7 @@ def install_yml_exists(path: str = workspace) -> str:
         c_print('install.yml not found.', red_style)
         return ''
 
+
 # check install.yml is valid yml
 def install_yml_is_valid(file_path: str) -> bool:
     c_print('Validating install.yml.', blue_style)
@@ -68,6 +72,7 @@ def install_yml_is_valid(file_path: str) -> bool:
     except Exception as e:
         c_print(e, red_style)
         return False
+
 
 # check that all dependencies are included in "install.yml"
 def check_dependencies(file_path: str, repo_path: str = workspace) -> bool:
@@ -84,7 +89,7 @@ def check_dependencies(file_path: str, repo_path: str = workspace) -> bool:
         for lib in tethys_libraries:
             p0 = subprocess.Popen(
                 f'{pipreqs_exec} /opt/conda/envs/tethys/lib/python{python_version}/site-packages/{lib} --print',
-                stdout=subprocess.PIPE,
+                stdout=subprocess.DEVNULL,
                 shell=True
             )
             for req in p0.communicate()[0].splitlines():
@@ -95,7 +100,7 @@ def check_dependencies(file_path: str, repo_path: str = workspace) -> bool:
         requirements = []
         p1 = subprocess.Popen(
             f'{pipreqs_exec} {repo_path} --print',
-            stdout=subprocess.PIPE,
+            stdout=subprocess.DEVNULL,
             shell=True
         )
         for req in p1.communicate()[0].splitlines():
@@ -125,6 +130,7 @@ def check_dependencies(file_path: str, repo_path: str = workspace) -> bool:
         c_print('Dependencies not checked. Could not find install.yml.', red_style)
         return False
 
+
 # check that the app python package is the only directory in the app package directory
 def app_python_package_is_only(path: str = workspace) -> str:
     c_print('Verifying that the app python package is the only directory in the app package directory.', blue_style)
@@ -132,6 +138,7 @@ def app_python_package_is_only(path: str = workspace) -> str:
         c_print('The app package contains directories other than the app python package', red_style)
         return ''
     return os.listdir(os.path.join(path, 'tethysapp'))[0]
+
 
 # check tethys 3 syntax
 def is_tethys_3(app_python_package: str) -> bool:
@@ -142,6 +149,7 @@ def is_tethys_3(app_python_package: str) -> bool:
         if check1 and check2:
             ret = True
     return ret
+
 
 # check that there's not an __init__.py file at the release and app package directories
 def app_and_release_package_are_not_python_packages(path: str = workspace) -> bool:
@@ -155,6 +163,7 @@ def app_and_release_package_are_not_python_packages(path: str = workspace) -> bo
         ret = False
     return ret
 
+
 # check that __init__.py in app python package is empty
 def init_py_is_empty(app_python_package: str, path: str = workspace) -> bool:
     c_print('Verifying that the __init__.py file in the app python package is empty.', blue_style)
@@ -164,6 +173,7 @@ def init_py_is_empty(app_python_package: str, path: str = workspace) -> bool:
                 c_print('The app python package "__init__.py" file should be empty.', red_style)
                 return False
     return True
+
 
 # install the app
 def install_app(path: str = workspace) -> bool:
@@ -176,11 +186,12 @@ def install_app(path: str = workspace) -> bool:
     )
     res = p2.communicate()
     lines = res[0].decode('utf-8').splitlines()
-    for l in lines:
-        print(l)
+    for line in lines:
+        print(line)
     if 'error' not in res[1].decode('utf-8').lower():
         return True
     return False
+
 
 # check that needed non-python files were properly added to the resource_files variable of setup.py
 def non_python_files_added(app_python_package: str) -> None:
@@ -213,6 +224,7 @@ def non_python_files_added(app_python_package: str) -> None:
                     orange_style
                 )
 
+
 def main() -> str:
     app_installed = False
     setup_py = setup_py_exists()
@@ -231,6 +243,7 @@ def main() -> str:
         c_print('The app passed all the checks.\nRESULT: Success', green_style)
     else:
         c_print('The app did not pass all the checks.\nRESULT: Failed', red_style)
+
 
 if __name__ == "__main__":
     main()
