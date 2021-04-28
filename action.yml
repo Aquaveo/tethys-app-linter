@@ -1,6 +1,9 @@
 # action.yml
 name: 'tethys-app-linter'
 description: 'A GitHub Action to check the code integrity of Tethys applications.'
+branding:
+  icon: 'check-circle'
+  color: 'green'
 inputs:
   repository:
     description: 'The Tethys app repository to lint.'
