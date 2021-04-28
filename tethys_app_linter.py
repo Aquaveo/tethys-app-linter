@@ -35,7 +35,7 @@ def c_print(msg, style):
 def setup_py_exists(path: str = workspace) -> bool:
     c_print('Verifying that setup.py exists', blue_style)
     if os.path.isfile(os.path.join(path, 'setup.py')):
-        c_print(f'setup.py file exists.', green_style)
+        c_print('setup.py file exists.', green_style)
         return True
     else:
         c_print('setup.py not found.', red_style)
@@ -235,7 +235,7 @@ def main() -> str:
 
     checks = [setup_py, os.path.isfile(install_yml), dependencies, tethys3]
 
-    if all(check == True for check in checks):
+    if all(check for check in checks):
         app_installed = install_app()
         non_python_files_added(app_python_package)
 

@@ -27,4 +27,4 @@ jobs:
       with:
         checkName: "Flake8"
         path: ${{ github.workspace }}
-        config: /tox.ini
+        config: /flake8.ini
