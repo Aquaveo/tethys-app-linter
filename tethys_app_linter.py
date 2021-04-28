@@ -89,7 +89,7 @@ def check_dependencies(file_path: str, repo_path: str = workspace) -> bool:
         for lib in tethys_libraries:
             p0 = subprocess.Popen(
                 f'{pipreqs_exec} /opt/conda/envs/tethys/lib/python{python_version}/site-packages/{lib} --print',
-                stdout=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
                 shell=True
             )
             for req in p0.communicate()[0].splitlines():
@@ -100,7 +100,7 @@ def check_dependencies(file_path: str, repo_path: str = workspace) -> bool:
         requirements = []
         p1 = subprocess.Popen(
             f'{pipreqs_exec} {repo_path} --print',
-            stdout=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
             shell=True
         )
         for req in p1.communicate()[0].splitlines():
