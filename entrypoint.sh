@@ -7,6 +7,9 @@ echo "$PYTHON_OUTPUT"
 
 RESULT=$(echo "$PYTHON_OUTPUT" | awk -F'RESULT: ' '{print $2}')
 
-case "$RESUlT" in
-  *Failed*) exit 1 ;;
-esac
+if [ "$RESUlT" = "Failed" ] ; then
+  echo "Failed"
+  exit 1
+else
+  echo "Success"
+fi
