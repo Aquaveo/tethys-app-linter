@@ -18,13 +18,11 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Set up Python
-      uses: actions/setup-python@v2
       with:
         python-version: "3.8"
     - name: Run flake
-      uses: julianwachholz/flake8-action@v2
+      uses: tonybajan/flake8-check-action@v1.0.0
       with:
-        checkName: "Flake8"
-        path: ${{ github.workspace }}
-        config: /flake8.ini
+        select: E,W,F  # check for pep8 and pyflakes errors
+        maxlinelength: 120
+        repotoken: ${{ secrets.GITHUB_TOKEN }}
