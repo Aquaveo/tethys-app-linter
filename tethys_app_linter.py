@@ -5,6 +5,7 @@ import os
 from glob import glob
 import subprocess
 import yaml
+from typing import Literal
 
 # colors
 end_style = '\033[0m'
@@ -27,8 +28,8 @@ if repo_name == 'tethys-app-linter':
 
 
 # print colors
-def c_print(msg, style):
-    return print(f'{style}{msg}{end_style}')
+def c_print(msg: str, style: Literal[red_style, green_style, orange_style, blue_style]) -> str:
+    print(f'{style}{msg}{end_style}')
 
 
 # check setup.py exists
@@ -169,9 +170,10 @@ def init_py_is_empty(app_python_package: str, path: str = workspace) -> bool:
     c_print('Verifying that the __init__.py file in the app python package is empty.', blue_style)
     if os.path.isfile(os.path.join(path, 'tethysapp', app_python_package, '__init__.py')):
         with open(os.path.join(path, 'tethysapp', app_python_package, '__init__.py'), 'r') as f:
-            if f.read():
-                c_print('The app python package "__init__.py" file should be empty.', red_style)
-                return False
+            for line in f.readlines():
+                if not line.startswith("#"):
+                    c_print('The app python package "__init__.py" file should be empty.', red_style)
+                    return False
     return True
 
 
