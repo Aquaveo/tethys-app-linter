@@ -5,7 +5,7 @@ import os
 from glob import glob
 import subprocess
 import yaml
-from typing import Literal
+from typing_extensions import Literal
 
 # colors
 end_style = '\033[0m'
